@@ -45,7 +45,7 @@ To run the application, follow these steps:
  ```bash
    python app.py
    ```
-2. Open your web browser and go to http://localhost:5000.
+2. Open your web browser and go to http://127.0.0.1:10000/.
 3. Allow access to your webcam when prompted.
 
    ![image](https://github.com/user-attachments/assets/ebd26ee5-7ffd-49a3-a255-fd7ad9cfe82b)
