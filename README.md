@@ -65,7 +65,7 @@ You can try the Drone Detection Web Application through this [live demo](https:/
 Contributions are welcome! If you want to contribute to this project, please fork the repository and create a new branch. Submit a pull request with a clear description of your changes.
 
 ## License
-This project is licensed under the MIT License - see the [LICENSE](license) file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 Special thanks to [OpenCV](https://opencv.org/) for providing powerful computer vision capabilities.
