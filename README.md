@@ -21,7 +21,6 @@ Welcome to the Drone Detection Web Application! This project aims to provide a u
 - Flask (for the web framework)
 - OpenCV (for computer vision)
 - HTML/CSS/JavaScript (for the front end)
-- TensorFlow/Keras (for machine learning models, if applicable)
 
 ## Installation
 To set up the project locally, follow these steps:
