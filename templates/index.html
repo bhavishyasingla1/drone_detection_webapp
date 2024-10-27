@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Drone Detection System</title>
+    <style>
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+        .video-container {
+            margin: 20px 0;
+            position: relative;
+            width: 640px;
+            height: 480px;
+            margin: 0 auto;
+        }
+        #videoElement {
+            width: 100%;
+            height: 100%;
+            background-color: #666;
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+        #outputCanvas {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+        .controls {
+            margin: 20px 0;
+        }
+        .controls button {
+            padding: 10px 20px;
+            margin: 0 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .status {
+            margin: 20px 0;
+            padding: 10px;
+            font-weight: bold;
+        }
+        .error-message {
+            color: red;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Drone Detection System</h1>
+        
+        <div class="video-container">
+            <video id="videoElement" autoplay></video>
+            <canvas id="outputCanvas"></canvas>
+        </div>
+
+        <div class="controls">
+            <button id="startButton">Start Detection</button>
+            <button id="stopButton">Stop Detection</button>
+        </div>
+
+        <div id="statusMessage" class="status">
+            Status: Stopped
+        </div>
+        <div id="errorMessage" class="error-message"></div>
+    </div>
+
+    <script>
+        let video = document.getElementById('videoElement');
+        let canvas = document.getElementById('outputCanvas');
+        let ctx = canvas.getContext('2d');
+        let mediaStream = null;
+        let isDetectionRunning = false;
+        let isProcessing = false;
+        const errorMessage = document.getElementById('errorMessage');
+
+        // Check if we're in a secure context
+        if (!window.isSecureContext) {
+            errorMessage.textContent = 'This application requires a secure context (HTTPS)';
+        }
+
+        // Get DOM elements
+        const startButton = document.getElementById('startButton');
+        const stopButton = document.getElementById('stopButton');
+        const statusMessage = document.getElementById('statusMessage');
+
+        function updateCanvasSize() {
+            canvas.width = video.videoWidth || 640;
+            canvas.height = video.videoHeight || 480;
+        }
+
+        startButton.addEventListener('click', async () => {
+            try {
+                errorMessage.textContent = '';
+                mediaStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: {
+                        width: { ideal: 640 },
+                        height: { ideal: 480 }
+                    }
+                });
+                video.srcObject = mediaStream;
+                video.onloadedmetadata = () => {
+                    updateCanvasSize();
+                    isDetectionRunning = true;
+                    statusMessage.textContent = 'Status: Running';
+                    requestAnimationFrame(processFrameLoop);
+                };
+            } catch (err) {
+                console.error('Error accessing webcam:', err);
+                errorMessage.textContent = `Error accessing webcam: ${err.message}`;
+                statusMessage.textContent = 'Status: Error';
+            }
+        });
+
+        stopButton.addEventListener('click', () => {
+            stopDetection();
+        });
+
+        function stopDetection() {
+            isDetectionRunning = false;
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                mediaStream = null;
+            }
+            video.srcObject = null;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            statusMessage.textContent = 'Status: Stopped';
+            errorMessage.textContent = '';
+        }
+
+        async function processFrameLoop() {
+            if (!isDetectionRunning) return;
+            if (!isProcessing) {
+                await processFrame();
+            }
+            requestAnimationFrame(processFrameLoop);
+        }
+
+        async function processFrame() {
+            if (!video.videoWidth || isProcessing) return;
+
+            isProcessing = true;
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = video.videoWidth;
+            tempCanvas.height = video.videoHeight;
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCtx.drawImage(video, 0, 0);
+
+            try {
+                const frameData = tempCanvas.toDataURL('image/jpeg', 0.85);
+
+                const response = await fetch('/process_frame', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ frame: frameData })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.processed_frame) {
+                        const img = new Image();
+                        img.onload = () => {
+                            ctx.clearRect(0, 0, canvas.width, canvas.height);
+                            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                            isProcessing = false;
+                        };
+                        img.src = 'data:image/jpeg;base64,' + result.processed_frame;
+                    }
+                } else {
+                    throw new Error('Server response was not ok');
+                }
+            } catch (error) {
+                console.error('Error processing frame:', error);
+                errorMessage.textContent = `Error processing frame: ${error.message}`;
+                isProcessing = false;
+            }
+        }
+
+        window.addEventListener('beforeunload', () => {
+            stopDetection();
+        });
+
+        window.addEventListener('resize', updateCanvasSize);
+    </script>
+</body>
+</html>
