@@ -1,4 +1,4 @@
-# Drone Detection Web Application
+# Drone Detection Web App
 
 Welcome to the Drone Detection Web Application! This project aims to provide a user-friendly interface for detecting and monitoring drone activities in a given area. It leverages advanced computer vision techniques to identify drones in real time.
 
